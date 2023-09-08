@@ -1,0 +1,10 @@
+---
+title: "HW1"
+author: "Jiaqi Zhu"
+format: html
+editor: visual
+---
+
+
+
+
