@@ -5,6 +5,402 @@ format: html
 editor: visual
 ---
 
+## Problem 1 - Wine data
 
+a.  Import the data into a data.frame in R. Use the information in the "wine.names" file to give appropriate column names.
 
+```{r}
+#| code-overflow: wrap
+df <- read.csv("/Users/jiaqizhu/Downloads/506/wine/wine.data",header=FALSE)
+names(df) <- c("class","Alcohol","Malic acid","Ash","Alcalinity of ash","Magnesium","Total phenols","Flavanoids","Nonflavanoid phenols","Proanthocyanins","Color intensity","Hue","OD280/OD315 of diluted wines","Proline")
 
+```
+
+b.  The data contains information on three different classes of wine. Ensure that the number of wines within each class is correct as reported in "wine.names".
+
+```{r}
+count1 <- sum(df$class == 1)
+count2 <- sum(df$class == 2)
+count3 <- sum(df$class == 3)
+print(paste("The number of wines in class 1 is ",count1))
+print(paste("The number of wines in class 2 is ",count2))
+print(paste("The number of wines in class 3 is ",count3))
+```
+
+c.1. The wine with the highest alcohol content belongs to which class?
+
+```{r}
+df[which.max(df$Alcohol),]
+df$class[which.max(df$Alcohol)]
+```
+
+The wine with the highest alcohol content belongs to class 1.
+
+c.2. The wine with the lowest alcohol content belongs to which class?
+
+```{r}
+df[which.min(df$Alcohol),]
+df$class[which.min(df$Alcohol)]
+```
+
+The wine with the lowest alcohol content belongs to class 2.
+
+c.3. German beers have, on average, 114 mg/l of magnesium. How many of these wines have higher levels of magnesium than that?
+
+```{r}
+count_magnesium <- sum(df$Magnesium > 114)
+print(count_magnesium)
+```
+
+c.4. Within each class, how many wines have higher levels of magnesium than average German beer?
+
+```{r}
+results <- tapply(df$Magnesium > 114, df$class, sum)
+print(results)
+sum(df[which(df$Magnesium>114),]$class == 1)
+sum(df[which(df$Magnesium>114),]$class == 2)
+sum(df[which(df$Magnesium>114),]$class == 3)
+```
+
+d.  Create a table identifying the average value of each variable, providing one row for the overall average, and one row per class with class averages.
+
+```{r}
+#| echo: true
+#| code-fold: true
+#| code-summary: "Show the code"
+#| code-overflow: wrap
+# Calculate overall averages
+overall_avg_values <- colMeans(df[-1], na.rm = TRUE)
+overall_avg <- data.frame(matrix(ncol = length(overall_avg_values) + 1, nrow = 1))
+colnames(overall_avg) <- c(colnames(df[-1]), "class")
+overall_avg[1,-ncol(overall_avg)] <- overall_avg_values
+overall_avg$class <- "Overall"
+
+# Create a function to compute class-wise averages
+calculate_class_avg <- function(class_value) {
+  subset_data <- df[df$class == class_value, -1]
+  avg <- colMeans(subset_data, na.rm = TRUE)
+  avg_df <- as.data.frame(t(avg))
+  avg_df$class <- class_value
+  return(avg_df)
+}
+
+# Calculate class averages
+class_avgs <- do.call(rbind, lapply(unique(df$class), calculate_class_avg))
+
+# Combine overall average with class averages
+result_table <- rbind(overall_avg, class_avgs)
+print(result_table)
+
+```
+
+e.  Carry out a series of t-tests to examine whether the level of Ash differs across the three classes. Present the R output and interpret the results.
+
+```{r}
+# Class 1 vs Class 2
+ttest_1_2 <- t.test(df$Ash[df$class == 1], df$Ash[df$class == 2])
+# Class 1 vs Class 3
+ttest_1_3 <- t.test(df$Ash[df$class == 1], df$Ash[df$class == 3])
+# Class 2 vs Class 3
+ttest_2_3 <- t.test(df$Ash[df$class == 2], df$Ash[df$class == 3])
+
+print(ttest_1_2)
+print(ttest_1_3)
+print(ttest_2_3)
+
+```
+
+The difference in means for class 1 and class 2 cannot be believed to equal to 0, at the significance level 5%.
+
+The difference in means for class 1 and class 3 can be believed to equal to 0, at the significance level 5%.
+
+The difference in means for class 2 and class 3 cannot be believed to equal to 0, at the significance level 5%.
+
+Extra credit. Manually write the calculation of the t-test, p-values. Take class 1 vs. class 2 as the example.
+
+```{r}
+x <- df$Ash[df$class == 1]
+y <- df$Ash[df$class == 2]
+
+n_x <- length(x)
+n_y <- length(y)
+
+mean_x <- mean(x)
+mean_y <- mean(y)
+
+var_x <- var(x)
+var_y <- var(y)
+
+# t-statistic
+t_statistic <- (mean_x - mean_y) / sqrt((var_x/n_x) + (var_y/n_y))
+
+# Degrees of freedom
+df <- (((var_x/n_x) + (var_y/n_y))^2) / ((var_x^2/((n_x^2)*(n_x-1))) + (var_y^2/((n_y^2)*(n_y-1))))
+
+# p-value
+p_value <- 2 * (1 - pt(abs(t_statistic), df))
+
+print(paste("t-statistic: ", t_statistic))
+print(paste("p-value: ", p_value))
+
+```
+
+## Problem 2 - Perfect Powers
+
+a.  Write a function "isPerfectPower" to identify whether a given integer is a perfect power for a given power.
+
+```{r}
+#| code-overflow: wrap
+# n is the number to check, p is the specified power
+isPerfectPower <- function(n, p) {
+  # Calculate the root 
+  r <- n^(1/p)
+  # Check if the root is an integer
+  is_perfect <- abs(r - round(r)) < 1e-10 
+  # Considering the potential floating-point inaccuracies
+  
+  if (!is_perfect) {
+    # If it's not a perfect power, set root to NA
+    r <- NA
+  } else {
+    r <- round(r)
+  }
+  
+  # Return a list of length 2; the first is a logical, the second is the root of the input or NA if the input is not a perfect power.
+  return(list(is_perfect, r))
+}
+
+```
+
+b.  Demonstrate your function works. Do so by writing another function "findRootPower" which calls your first function, using a loop to identify both the root and power. Your function should identify the lowest power for which the input is perfect
+
+```{r}
+#| code-overflow: wrap
+findRootPower <- function(n) {
+  max_power <- floor(log(n)) + 1
+  
+  for(p in 2:max_power) {
+    result <- isPerfectPower(n, p)
+    if(result[[1]]) {  
+      # If is_perfect is TRUE
+      return(paste0(result[[2]], "^", p, " = ", n))
+    }
+  }
+  return("The number is not a perfect power.")
+}
+
+```
+
+```{r}
+# Test the function
+print(findRootPower(27))  
+print(findRootPower(13060694016))    
+print(findRootPower(7776))  
+print(findRootPower(170859375))   
+print(findRootPower(58247422)) 
+print(findRootPower(94143178827)) 
+```
+
+## Problem 3 - ChatGPT
+
+a.  Put the following prompt into ChatGPT and copy its output (both the code it produces as well as any text it generates) into your submission.
+
+ChatGPT's answer:
+
+<blockquote>
+
+<p>
+
+Certainly! Let's create these functions step by step.<br><br> <strong>1. Poker Hand Identifier Function</strong>
+
+Before we start, here's a quick reference to the hands in 5-card stud poker, from highest to lowest:
+
+1.Royal Flush<br> 2.Straight Flush<br> 3.Four of a Kind<br> 4.Full House<br> 5.Flush<br> 6.Straight<br> 7.Three of a Kind<br> 8.Two Pair<br> 9.One Pair<br> 10.High Card<br>
+
+Let's create a function identifyHand to classify a 5-card hand:
+
+</p>
+
+```{r}
+identifyHand <- function(suits, ranks) {
+  unique_suits <- unique(suits)
+  table_ranks <- table(ranks)
+  
+  # Check for flush and royal flush
+  is_flush <- length(unique_suits) == 1
+  is_straight <- length(unique(table_ranks)) == 5 && diff(sort(as.integer(names(table_ranks)))) == 1
+  
+  if (is_flush) {
+    if (is_straight) {
+      if (sum(ranks %in% c("10", "J", "Q", "K", "A")) == 5) {
+        return("Royal Flush")
+      }
+      return("Straight Flush")
+    }
+    return("Flush")
+  }
+  
+  if (is_straight) return("Straight")
+  
+  if (max(table_ranks) == 4) return("Four of a Kind")
+  if (any(table_ranks == 3) && any(table_ranks == 2)) return("Full House")
+  if (any(table_ranks == 3)) return("Three of a Kind")
+  if (sum(table_ranks == 2) == 4) return("Two Pair")
+  if (any(table_ranks == 2)) return("One Pair")
+  
+  return("High Card")
+  }
+```
+
+<p><strong>2. Poker Card Dealing Simulator</strong><br> For this function, we will first generate a deck of cards, then deal cards to players and finally identify and print each player's hand.</p>
+
+```{r}
+dealPoker <- function(num_players = 2) {
+  if (num_players * 5 > 52) {
+    stop("Too many players for a single deck!")
+  }
+
+  suits <- c("Hearts", "Diamonds", "Clubs", "Spades")
+  ranks <- c("2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A")
+  
+  deck <- expand.grid(suits = suits, ranks = ranks)
+  shuffled_deck <- deck[sample(1:52, size = 52), ]
+  
+  for (player in 1:num_players) {
+    start <- (player - 1) * 5 + 1
+    end <- player * 5
+    hand_suits <- shuffled_deck[start:end, "suits"]
+    hand_ranks <- shuffled_deck[start:end, "ranks"]
+    
+    hand_string <- paste(hand_ranks, "of", hand_suits, collapse=", ")
+    cat(sprintf("Player %d: %s - %s\n", player, hand_string, identifyHand(hand_suits, hand_ranks)))
+  }
+}
+
+```
+
+<p>To test, deal cards for 3 players:</p>
+
+```{r}
+dealPoker(3)
+```
+
+<p>With these functions, you can simulate a 5-card stud poker game and determine the type of hand each player has. Adjustments might be needed based on specific rules or nuances of the game variant you're considering.</p>
+
+</blockquote>
+
+b.  See if the code runs without modification in R. If so, demonstrate it with a range of inputs. If not, fix it and explain what you fixed.
+
+```{r}
+# test the function with a range of inputs.
+set.seed(123)
+dealPoker(3)
+dealPoker(4)
+dealPoker(5)
+dealPoker(10)
+```
+
+The code runs without errors for a variety on inputs. There is no bug in the code, although we have not checked if the answers are correct or not.
+
+c.  Without asking ChatGPT or another LLM, explain line-by-line what the code is doing. The easiest way to display this would be to throughly comment the code.
+
+```{r}
+# The function takes two vector inputs: suits and ranks of the 5 cards in a hand
+identifyHand <- function(suits, ranks) {
+  # Get the unique suits.
+  unique_suits <- unique(suits)
+  # Create a table of the ranks.
+  table_ranks <- table(ranks)
+  
+  # Check if all cards are in the same suit. If it is, then it's a Flush.
+  is_flush <- length(unique_suits) == 1
+  # Check if it is a Straight (Five consecutive cards of different suits).
+  is_straight <- length(unique(table_ranks)) == 5 && diff(sort(as.integer(names(table_ranks)))) == 1
+  
+  if (is_flush) {
+    if (is_straight) {
+      if (sum(ranks %in% c("10", "J", "Q", "K", "A")) == 5) {
+        # It is a Royal Flush if it's both flush and straight and in high cards.
+        return("Royal Flush")
+      }
+      # It is a Straight Flush if it's both flush and straight.
+      return("Straight Flush")
+    }
+    # It is a Flush if it is not straight.
+    return("Flush")
+  }
+  
+  if (is_straight) return("Straight")
+  # Check if there is a rank occurs four times.
+  if (max(table_ranks) == 4) return("Four of a Kind")
+  # Check if there is a rank occurs three time and another twice.
+  if (any(table_ranks == 3) && any(table_ranks == 2)) return("Full House")
+  # Check if there is a rank occurs three times.
+  if (any(table_ranks == 3)) return("Three of a Kind")
+  # Check if there are two different ranks that occurs twice.
+  if (sum(table_ranks == 2) == 4) return("Two Pair")
+  # Check if there is a rank occurs twice.
+  if (any(table_ranks == 2)) return("One Pair")
+  # None of the above is satisfied.
+  return("High Card")
+}
+
+# This function takes one inputs: the number of players and the default is 2.
+dealPoker <- function(num_players = 2) {
+  # Check if players are too many to ensure everyone has five cards.
+  if (num_players * 5 > 52) {
+    stop("Too many players for a single deck!")
+  }
+  # Define the suits and ranks of a deck.
+  suits <- c("Hearts", "Diamonds", "Clubs", "Spades")
+  ranks <- c("2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A")
+  
+  # Create a full deck and shuffle it
+  deck <- expand.grid(suits = suits, ranks = ranks)
+  shuffled_deck <- deck[sample(1:52, size = 52), ]
+  
+  # Loop through each player
+  for (player in 1:num_players) {
+    # Calculate the start and end indices for their cards.
+    start <- (player - 1) * 5 + 1
+    end <- player * 5
+    # Extract the suits and ranks from the shuffled deck for this player
+    hand_suits <- shuffled_deck[start:end, "suits"]
+    hand_ranks <- shuffled_deck[start:end, "ranks"]
+    # Convert the player's hand to a string.
+    hand_string <- paste(hand_ranks, "of", hand_suits, collapse=", ")
+    # Use the first function to display the name of each of the hands.
+    cat(sprintf("Player %d: %s - %s\n", player, hand_string, identifyHand(hand_suits, hand_ranks)))
+  }
+}
+
+```
+
+d.  Determine whether the code produces accurate results. Explain how you made this determination.
+
+The code fail to produce accurate results. We test the "identifyHand" function with various 5-card hands to see if it correctly identifies each hand.
+
+```{r}
+# 10 tests in total
+identifyHand(c("Hearts", "Hearts", "Hearts", "Hearts", "Hearts"),c("A", "K", "Q", "J", "10"))
+identifyHand(c("Clubs", "Clubs", "Clubs", "Clubs", "Clubs"),c("8", "7", "6", "5", "4"))
+identifyHand(c("Diamonds", "Hearts", "Clubs", "Spades", "Hearts"),c("5", "5", "5", "5", "K"))
+identifyHand(c("Diamonds", "Hearts", "Clubs", "Spades", "Hearts"),c("J", "J", "J", "K", "K"))
+identifyHand(c("Hearts", "Hearts", "Hearts", "Hearts"),c("2", "4", "7", "9", "Q"))
+identifyHand(c("Hearts", "Diamonds", "Clubs", "Spades", "Hearts"),c("3", "4", "5", "6", "7"))
+identifyHand(c("Diamonds", "Hearts", "Clubs", "Spades", "Hearts"),c("A", "A", "A", "K", "Q"))
+identifyHand(c("Diamonds", "Hearts", "Clubs", "Spades", "Hearts"),c("8", "8", "10", "10", "Q"))
+identifyHand(c("Diamonds", "Hearts", "Clubs", "Spades", "Hearts"),c("K", "K", "5", "6", "8"))
+identifyHand(c("Diamonds", "Hearts", "Clubs", "Spades", "Hearts"),c("3", "5", "8", "9", "K"))
+
+```
+
+From the results of our tests above and the tests in b., it's obvious that this two functions can take the input and give output well. The first takes two vector inputs: suits and ranks of the 5 cards in a hand, and returns the name of the hand. The second takes the number of players and prints names of players' hands, and their cards.
+
+Are the hands valid? To check id the hands valid for each player, we should test the function 2 to see if there is wrong cards or duplicates (we have already done it in b.), and we also check if the corresponding code correctly define a full deck of cards and divide them to players without overlap. We can conclude that the hands are valid all the time, all the cards are from 52 full deck, and none of them duplicates among different players.
+
+Are the names of the hands correct? No, some of them are incorrect. From the results of our tests above, it is obvious that the function fail to identify Royal flush, Straight flush, Straight, and Two pair. So it implies the function has problem on the Straight identification part.
+
+Does it ensure no duplicates in cards across hands? What happens if you ask for more than 10 hands to be dealt? Yes, it ensure no duplicates in cards across hands, and if the number of players \> 10, there would have a warning message "Too many players for a single deck!"
+
+The first function identifyHand has problem on identifying Straight, so we will fix it in the following.
