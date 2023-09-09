@@ -5,6 +5,8 @@ format: html
 editor: visual
 ---
 
+GitHub repository: https://github.com/Julie0707/stats506_HW1
+
 ## Problem 1 - Wine data
 
 a.  Import the data into a data.frame in R. Use the information in the "wine.names" file to give appropriate column names.
