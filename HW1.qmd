@@ -291,13 +291,17 @@ dealPoker(3)
 
 b.  See if the code runs without modification in R. If so, demonstrate it with a range of inputs. If not, fix it and explain what you fixed.
 
+Since the second function uses the first function, pass the input to it and get the output as part of its own output, we can only test the second function.
+
 ```{r}
+#| error: true
 # test the function with a range of inputs.
-set.seed(123)
 dealPoker(3)
 dealPoker(4)
 dealPoker(5)
+dealPoker(6)
 dealPoker(10)
+dealPoker(11)
 ```
 
 The code runs without errors for a variety on inputs. There is no bug in the code, although we have not checked if the answers are correct or not.
@@ -314,7 +318,7 @@ identifyHand <- function(suits, ranks) {
   
   # Check if all cards are in the same suit. If it is, then it's a Flush.
   is_flush <- length(unique_suits) == 1
-  # Check if it is a Straight (Five consecutive cards of different suits).
+  # Check if it is a Straight (Five consecutive cards).
   is_straight <- length(unique(table_ranks)) == 5 && diff(sort(as.integer(names(table_ranks)))) == 1
   
   if (is_flush) {
@@ -381,6 +385,7 @@ d.  Determine whether the code produces accurate results. Explain how you made t
 The code fail to produce accurate results. We test the "identifyHand" function with various 5-card hands to see if it correctly identifies each hand.
 
 ```{r}
+#| error: true
 # 10 tests in total
 identifyHand(c("Hearts", "Hearts", "Hearts", "Hearts", "Hearts"),c("A", "K", "Q", "J", "10"))
 identifyHand(c("Clubs", "Clubs", "Clubs", "Clubs", "Clubs"),c("8", "7", "6", "5", "4"))
@@ -395,12 +400,114 @@ identifyHand(c("Diamonds", "Hearts", "Clubs", "Spades", "Hearts"),c("3", "5", "8
 
 ```
 
-From the results of our tests above and the tests in b., it's obvious that this two functions can take the input and give output well. The first takes two vector inputs: suits and ranks of the 5 cards in a hand, and returns the name of the hand. The second takes the number of players and prints names of players' hands, and their cards.
+From the results of our tests above and the tests in b., it's obvious that this two functions can take the input and give output well. The first takes two vector inputs: suits and ranks of the 5 cards in a hand, and returns the name of the hand. The second takes the number of players and prints names of players' hands, and their cards. 
 
-Are the hands valid? To check id the hands valid for each player, we should test the function 2 to see if there is wrong cards or duplicates (we have already done it in b.), and we also check if the corresponding code correctly define a full deck of cards and divide them to players without overlap. We can conclude that the hands are valid all the time, all the cards are from 52 full deck, and none of them duplicates among different players.
+The only thing we can improve is that we want to make sure the second function take an integer >= 2 && <11. The function chatgpt gives only make sure it's <11, so if it's not an positive integer >=2, we should stop it generating useless results.
 
-Are the names of the hands correct? No, some of them are incorrect. From the results of our tests above, it is obvious that the function fail to identify Royal flush, Straight flush, Straight, and Two pair. So it implies the function has problem on the Straight identification part.
+```{r}
+#| error: true
+dealPoker(0)
+dealPoker(2.332)
+```
 
-Does it ensure no duplicates in cards across hands? What happens if you ask for more than 10 hands to be dealt? Yes, it ensure no duplicates in cards across hands, and if the number of players \> 10, there would have a warning message "Too many players for a single deck!"
+Are the hands valid? To check if the hands valid for each player, we should test the function 2 to see if there is wrong cards or duplicates (we have already done it in b.), and we also check if the corresponding code correctly define a full deck of cards and divide them to players without overlap. We can conclude that **the hands are valid all the time: all the cards are from 52 full deck, and none of them duplicates among different players.**
 
-The first function identifyHand has problem on identifying Straight, so we will fix it in the following.
+Are the names of the hands correct? No, some of them are incorrect. From the results of our tests above, it is obvious that **the function fail to identify Royal flush, Straight flush, Straight, and Two pair.** So it implies the first function has problem on the Straight and Two Pairs identification part.
+
+Does it ensure no duplicates in cards across hands? What happens if you ask for more than 10 hands to be dealt? 
+Yes, it ensure no duplicates in cards across hands as we mentioned above, and if the number of players > 10, there would have a warning message "Too many players for a single deck!".
+
+The first function **identifyHand()** has problem on identifying all kinds of Straight and two pairs, so we will fix it in the following.
+
+The problem with it is that it defines a 'is_straight' in a wrong way with the condition 'diff(sort(as.integer(names(table_ranks)))) == 1' fail to identify 5 consecutive cards. Since it can't sort the ranks of cards. As a result, all kinds of straight hands ends up being "high cards". Now, we define a sorted_ranks where sort the ranks of cards correctly first, and then make sure they are consecutive.
+
+And it also define Two Pairs incorrectly. The sum of (table_ranks == 2) is supposed to be 2 instead of 4, since each pair is counted as 1.
+
+```{r}
+#| error: true
+identifyHand <- function(suits, ranks) {
+  unique_suits <- unique(suits)
+  table_ranks <- table(ranks)
+
+  is_flush <- length(unique_suits) == 1
+  # Here we fix the code
+  sorted_ranks <- sort(as.integer(factor(ranks, levels=c("2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"))))
+  is_straight <- all(diff(sorted_ranks) == 1)
+  
+  if (is_flush) {
+    if (is_straight) {
+      if (sum(ranks %in% c("10", "J", "Q", "K", "A")) == 5) {
+        return("Royal Flush")
+      }
+      return("Straight Flush")
+    }
+    return("Flush")
+  }
+  
+  if (is_straight) return("Straight")
+  if (max(table_ranks) == 4) return("Four of a Kind")
+  if (any(table_ranks == 3) && any(table_ranks == 2)) return("Full House")
+  if (any(table_ranks == 3)) return("Three of a Kind")
+  # Here we fix the code
+  if (sum(table_ranks == 2) == 2) return("Two Pair")
+  if (any(table_ranks == 2)) return("One Pair")
+  return("High Card")
+}
+
+dealPoker <- function(num_players) {
+  if (num_players * 5 > 52) {
+    stop("Too many players for a single deck!")
+  }
+  
+  # Here we improve the code
+  
+  if(num_players < 2){
+    stop("At least 2 players!")
+  }
+
+  suits <- c("Hearts", "Diamonds", "Clubs", "Spades")
+  ranks <- c("2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A")
+  
+  deck <- expand.grid(suits = suits, ranks = ranks)
+  shuffled_deck <- deck[sample(1:52, size = 52), ]
+  
+  for (player in 1:num_players) {
+    start <- (player - 1) * 5 + 1
+    end <- player * 5
+    hand_suits <- shuffled_deck[start:end, "suits"]
+    hand_ranks <- shuffled_deck[start:end, "ranks"]
+    
+    hand_string <- paste(hand_ranks, "of", hand_suits, collapse=", ")
+    cat(sprintf("Player %d: %s - %s\n", player, hand_string, identifyHand(hand_suits, hand_ranks)))
+  }
+}
+
+```
+
+**After fixing these two parts of the code, we test the function again. It is obvious that we get the correct answer this time.**
+
+```{r}
+#| error: true
+# 10 tests 
+identifyHand(c("Hearts", "Hearts", "Hearts", "Hearts", "Hearts"),c("A", "K", "Q", "J", "10"))
+identifyHand(c("Clubs", "Clubs", "Clubs", "Clubs", "Clubs"),c("8", "7", "6", "5", "4"))
+identifyHand(c("Diamonds", "Hearts", "Clubs", "Spades", "Hearts"),c("5", "5", "5", "5", "K"))
+identifyHand(c("Diamonds", "Hearts", "Clubs", "Spades", "Hearts"),c("J", "J", "J", "K", "K"))
+identifyHand(c("Hearts", "Hearts", "Hearts", "Hearts"),c("2", "4", "7", "9", "Q"))
+identifyHand(c("Hearts", "Diamonds", "Clubs", "Spades", "Hearts"),c("3", "4", "5", "6", "7"))
+identifyHand(c("Diamonds", "Hearts", "Clubs", "Spades", "Hearts"),c("A", "A", "A", "K", "Q"))
+identifyHand(c("Diamonds", "Hearts", "Clubs", "Spades", "Hearts"),c("8", "8", "10", "10", "Q"))
+identifyHand(c("Diamonds", "Hearts", "Clubs", "Spades", "Hearts"),c("K", "K", "5", "6", "8"))
+identifyHand(c("Diamonds", "Hearts", "Clubs", "Spades", "Hearts"),c("3", "5", "8", "9", "K"))
+
+```
+
+```{r}
+#| error: true
+#| warning: true
+dealPoker(0)
+dealPoker(9)
+dealPoker(9.233)
+dealPoker(10)
+```
+
