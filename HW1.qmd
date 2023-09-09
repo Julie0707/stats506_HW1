@@ -400,9 +400,9 @@ identifyHand(c("Diamonds", "Hearts", "Clubs", "Spades", "Hearts"),c("3", "5", "8
 
 ```
 
-From the results of our tests above and the tests in b., it's obvious that this two functions can take the input and give output well. The first takes two vector inputs: suits and ranks of the 5 cards in a hand, and returns the name of the hand. The second takes the number of players and prints names of players' hands, and their cards. 
+From the results of our tests above and the tests in b., it's obvious that this two functions can take the input and give output well. The first takes two vector inputs: suits and ranks of the 5 cards in a hand, and returns the name of the hand. The second takes the number of players and prints names of players' hands, and their cards.
 
-The only thing we can improve is that we want to make sure the second function take an integer >= 2 && <11. The function chatgpt gives only make sure it's <11, so if it's not an positive integer >=2, we should stop it generating useless results.
+The only thing we can improve is that we want to make sure the second function take an integer \>= 2 && \<11. The function chatgpt gives only make sure it's \<11, so if it's not an positive integer \>=2, we should stop it generating useless results.
 
 ```{r}
 #| error: true
@@ -414,8 +414,7 @@ Are the hands valid? To check if the hands valid for each player, we should test
 
 Are the names of the hands correct? No, some of them are incorrect. From the results of our tests above, it is obvious that **the function fail to identify Royal flush, Straight flush, Straight, and Two pair.** So it implies the first function has problem on the Straight and Two Pairs identification part.
 
-Does it ensure no duplicates in cards across hands? What happens if you ask for more than 10 hands to be dealt? 
-Yes, it ensure no duplicates in cards across hands as we mentioned above, and if the number of players > 10, there would have a warning message "Too many players for a single deck!".
+Does it ensure no duplicates in cards across hands? What happens if you ask for more than 10 hands to be dealt? Yes, it ensure no duplicates in cards across hands as we mentioned above, and if the number of players \> 10, there would have a warning message "Too many players for a single deck!".
 
 The first function **identifyHand()** has problem on identifying all kinds of Straight and two pairs, so we will fix it in the following.
 
@@ -456,13 +455,16 @@ identifyHand <- function(suits, ranks) {
 
 dealPoker <- function(num_players) {
   if (num_players * 5 > 52) {
-    stop("Too many players for a single deck!")
+    stop("Too many players for a single deck.")
   }
   
   # Here we improve the code
-  
+  is_integer <- abs(num_players - round(num_players)) < 1e-10 
+  if(!is_integer){
+    stop("Please input an integer.")
+  }
   if(num_players < 2){
-    stop("At least 2 players!")
+    stop("At least 2 players.")
   }
 
   suits <- c("Hearts", "Diamonds", "Clubs", "Spades")
@@ -510,4 +512,3 @@ dealPoker(9)
 dealPoker(9.233)
 dealPoker(10)
 ```
-
