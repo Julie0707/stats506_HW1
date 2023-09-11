@@ -1,10 +1,10 @@
 ---
 title: "HW1"
 author: "Jiaqi Zhu"
-
 format:
   html:
     embed-resources: true
+    code-overflow: wrap
 editor: visual
 ---
 
