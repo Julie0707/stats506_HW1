@@ -1,7 +1,10 @@
 ---
 title: "HW1"
 author: "Jiaqi Zhu"
-format: html
+
+format:
+  html:
+    embed-resources: true
 editor: visual
 ---
 
